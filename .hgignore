@@ -1,0 +1,13 @@
+# Use glob syntax.
+syntax: glob
+
+*.drv
+*.sym
+*.res
+*.bin
+*.obj
+*.lib
+*.map
+*.err
+dist
+boxv9x.img

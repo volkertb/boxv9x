@@ -1,0 +1,61 @@
+# This file produced by MS2WLINK
+system windows dll initglobal
+file dibthunk.obj
+file dibcall.obj
+file enable.obj
+file init.obj
+file palette.obj
+file scrsw.obj
+file sswhook.obj
+file modes.obj
+file boxv.obj
+name boxvmini.drv
+option map=boxvmini.map
+library dibeng.lib
+library clibs.lib
+option modname=DISPLAY
+option description 'DISPLAY : 100, 96, 96 : DIB Engine based Mini display driver.'
+option oneautodata
+segment type data preload fixed
+# definition file segments keyword handled differently in WLINK
+segment '_TEXT'  preload shared
+segment '_INIT'  preload moveable
+export BitBlt.1
+export ColorInfo.2
+export Control.3
+export Disable.4
+export Enable.5
+export EnumDFonts.6
+export EnumObj.7
+export Output.8
+export Pixel.9
+export RealizeObject.10
+export StrBlt.11
+export ScanLR.12
+export DeviceMode.13
+export ExtTextOut.14
+export GetCharWidth.15
+export DeviceBitmap.16
+export FastBorder.17
+export SetAttribute.18
+export DibBlt.19
+export CreateDIBitmap.20
+export DibToDevice.21
+export SetPalette.22
+export GetPalette.23
+export SetPaletteTranslate.24
+export GetPaletteTranslate.25
+export UpdateColors.26
+export StretchBlt.27
+export StretchDIBits.28
+export SelectBitmap.29
+export BitmapBits.30
+export ReEnable.31
+export Inquire.101
+export SetCursor.102
+export MoveCursor.103
+export CheckCursor.104
+export GetDriverResourceID.450
+export UserRepaintDisable.500
+export ValidateMode.700
+import GlobalSmartPageLock  KERNEL.230
