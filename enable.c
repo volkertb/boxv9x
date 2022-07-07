@@ -316,7 +316,12 @@ UINT WINAPI __loadds Enable( LPVOID lpDevice, UINT style, LPSTR lpDeviceType,
         lpInfo->dpLogPixelsY = wDpi;
         lpInfo->dpBitsPixel  = wBpp;
         lpInfo->dpDCManage   = DC_IgnoreDFNP;
-        lpInfo->dpCaps1 |= C1_BYTE_PACKED | C1_COLORCURSOR | C1_REINIT_ABLE | C1_SLOW_CARD;
+        /* In theory we should set the C1_SLOW_CARD flag since this driver is unaccelerated.
+         * This flag disables certain visual effects like "embossed" disabled text or animations.
+         * Realistically, software rendering in a VM on a modern system is going to be a lot
+         * faster than most mid-1990s graphics cards.
+         */
+        lpInfo->dpCaps1 |= C1_BYTE_PACKED | C1_COLORCURSOR | C1_REINIT_ABLE /*| C1_SLOW_CARD*/;
 
         /* Grab the DIB Engine PDevice size before we add to it. */
         wDIBPdevSize = lpInfo->dpDEVICEsize;
