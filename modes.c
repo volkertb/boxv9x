@@ -305,7 +305,7 @@ int PhysicalEnable( void )
         if( !iChipID ) {
             return( 0 );
         }
-        dwPhysVRAM = BOXV_get_lfb_base( 0 );
+        dwPhysVRAM = LfbBase;
         dbg_printf( "PhysicalEnable: Hardware detected, dwVideoMemorySize=%lX dwPhysVRAM=%lX\n", dwVideoMemorySize, dwPhysVRAM );
     }
 
@@ -371,7 +371,7 @@ UINT WINAPI __loadds ValidateMode( DISPVALMODE FAR *lpValMode )
                 rc = VALMODE_NO_WRONGDRV;
                 break;
             }
-            dwPhysVRAM = BOXV_get_lfb_base( 0 );
+            dwPhysVRAM = LfbBase;
             dbg_printf( "ValidateMode: Hardware detected, dwVideoMemorySize=%lX dwPhysVRAM=%lX\n", dwVideoMemorySize, dwPhysVRAM );
         }
 
