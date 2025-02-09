@@ -1,5 +1,5 @@
 This is a display minidriver for the Windows 9x family of operating systems,
-designed to run on the virtual hardware provided by VirtualBox.
+designed to run on the virtual hardware provided by QEMU ("-device VGA").
 
 The driver can be installed through the Display Settings dialog or through
 the Device Manager.

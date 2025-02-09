@@ -29,7 +29,7 @@ THE SOFTWARE.
 #include <dibeng.h>
 #include <minivdd.h>
 #include "minidrv.h"
-
+#include <configmg.h>
 
 /* GlobalSmartPageLock is a semi-undocumented function. Not officially
  * documented but described in KB Article Q180586. */
@@ -41,8 +41,10 @@ WORD    wDpi        = 96;   /* Current DPI setting. */
 WORD    wBpp        = 8;    /* Current BPP setting. */
 WORD    wPalettized = 0;    /* Non-zero if palettized. */
 
-WORD    OurVMHandle   = 0;  /* The current VM's ID. */
-DWORD   VDDEntryPoint = 0;  /* The VDD entry point. */
+WORD    OurVMHandle   = 0;          /* The current VM's ID. */
+DWORD   VDDEntryPoint = 0;          /* The VDD entry point. */
+DWORD   ConfigMGEntryPoint = 0;     /* The configuration manager entry point. */
+DWORD   LfbBase = 0;                /* The physical base address of the linear framebuffer. */
 
 /* On Entry:
  * EAX    = Function code (VDD_GET_DISPLAY_CONFIG)
@@ -65,18 +67,72 @@ extern DWORD CallVDDGetDispConf( WORD Function, WORD wDInfSize, LPVOID pDInf );
     "call   dword ptr VDDEntryPoint"\
     "mov    edx, eax"               \
     "shr    edx, 16"                \
-    parm [ax] [cx] [es di];
+    parm [ax] [cx] [es di] modify [bx];
 
 
 #pragma code_seg( _INIT )
 
+/* Get the first logical configuration for a devnode.
+ */
+CONFIGRET static _near _cdecl CM_Get_First_Log_Conf(
+    PLOG_CONF plcLogConf,
+    DEVNODE dnDevNode,
+    ULONG ulFlags)
+{
+    WORD wRc = 0;
+
+    _asm { mov eax, 01Ah }; /* CM_GET_FIRST_LOG_CONF */
+    _asm { call ConfigMGEntryPoint };
+    _asm { mov wRc, ax };
+
+    return( wRc );
+}
+
+/* Get the next resource descriptor of a given type.
+ */
+CONFIGRET static _near _cdecl CM_Get_Next_Res_Des(
+    PRES_DES prdResDes,
+    RES_DES CurrentResDesOrLogConf,
+    RESOURCEID ForResource,
+    PRESOURCEID pResourceID,
+    ULONG ulFlags)
+{
+    WORD wRc = 0;
+
+    _asm { mov eax, 01Fh }; /* CM_GET_NEXT_RES_DES */
+    _asm { call ConfigMGEntryPoint };
+    _asm { mov wRc, ax };
+
+    return( wRc );
+}
+
+/* Get the data for a resource descriptor.
+ */
+CONFIGRET static _near _cdecl CM_Get_Res_Des_Data(
+    RES_DES rdResDes,
+    PFARVOID Buffer,
+    ULONG BufferLen,
+    ULONG ulFlags)
+{
+    WORD wRc = 0;
+
+    _asm { mov eax, 022h }; /* CM_GET_RES_DES_DATA */
+    _asm { call ConfigMGEntryPoint };
+    _asm { mov wRc, ax };
+
+    return( wRc );
+}
+
 /* Read the display settings from SYSTEM.INI or Registry.
  */
-void ReadDisplayConfig( void )
+DEVNODE ReadDisplayConfig( void )
 {
     WORD        wX, wY;
     UINT        bIgnoreRegistry;
     MODEDESC    mode;
+    DEVNODE     devNode;
+    DISPLAYINFO DispInfo;
+    DWORD       dwRc;
 
     /* Get the DPI, default to 96. */
     wDpi = GetPrivateProfileInt( "display", "dpi", 96, "system.ini" );
@@ -92,13 +148,13 @@ void ReadDisplayConfig( void )
 
     bIgnoreRegistry = GetPrivateProfileInt( "display", "IgnoreRegistry", 0, "system.ini" );
 
-    if( !bIgnoreRegistry ) {
-        DISPLAYINFO DispInfo;
-        DWORD       dwRc;
+    dwRc = CallVDDGetDispConf( VDD_GET_DISPLAY_CONFIG, sizeof( DispInfo ), &DispInfo );
+    if( (dwRc != VDD_GET_DISPLAY_CONFIG) && !dwRc ) {
+        devNode = (DEVNODE)DispInfo.diDevNodeHandle;
 
-        dwRc = CallVDDGetDispConf( VDD_GET_DISPLAY_CONFIG, sizeof( DispInfo ), &DispInfo );
-        if( (dwRc != VDD_GET_DISPLAY_CONFIG) && !dwRc ) {
-            /* Call succeeded, use the data. */
+        /* Call succeeded, use the data. */
+        if (!bIgnoreRegistry)
+        {
             wScrX = DispInfo.diXRes;
             wScrY = DispInfo.diYRes;
             wBpp = DispInfo.diBpp;
@@ -108,9 +164,10 @@ void ReadDisplayConfig( void )
             /* DPI might not be set, careful. */
             if( DispInfo.diDPI )
                 wDpi = DispInfo.diDPI;
-        } else {
-            dbg_printf( "VDD_GET_DISPLAY_CONFIG failed, dwRc=%lX\n",dwRc );
         }
+    } else {
+        dbg_printf( "VDD_GET_DISPLAY_CONFIG failed, dwRc=%lX\n",dwRc );
+        devNode = 0;
     }
 
     mode.xRes = wScrX;
@@ -129,9 +186,12 @@ void ReadDisplayConfig( void )
         wPalettized = GetPrivateProfileInt( "display", "palettized", 1, "system.ini" );
     else
         wPalettized = 0;
+
+    return( devNode );
 }
 
-#define VDD_ID      10  /* Virtual Display Driver ID. */
+#define VDD_ID      10    /* Virtual Display Driver ID. */
+#define CONFIGMG_ID 51    /* Configuration Manager Driver ID. */
 
 /* Get Device API Entry Point. */
 void __far *int_2F_GetEP( unsigned ax, unsigned bx );
@@ -154,6 +214,8 @@ extern char __based( __segname( "_TEXT" ) ) *pText;
 #pragma aux DriverInit parm [cx] [di] [es si]
 UINT FAR DriverInit( UINT cbHeap, UINT hModule, LPSTR lpCmdLine )
 {
+    DEVNODE devNode;
+
     /* Lock the code segment. */
     GlobalSmartPageLock( (__segment)pText );
 
@@ -166,7 +228,43 @@ UINT FAR DriverInit( UINT cbHeap, UINT hModule, LPSTR lpCmdLine )
     dbg_printf( "DriverInit: VDDEntryPoint=%WP, OurVMHandle=%x\n", VDDEntryPoint, OurVMHandle );
 
     /* Read the display configuration before doing anything else. */
-    ReadDisplayConfig();
+    LfbBase = 0;
+    devNode = ReadDisplayConfig();
 
-    return( 1 );    /* Success. */
+    /* Use the Configuration Manager to locate the base address of the linear framebuffer. */
+    if( devNode ) {
+        RES_DES rd;
+
+        ConfigMGEntryPoint = (DWORD)int_2F_GetEP( 0x1684, CONFIGMG_ID );
+
+        if( CM_Get_First_Log_Conf( &rd, devNode, ALLOC_LOG_CONF ) == CR_SUCCESS ) {
+            ULONG cbAllocMax = 0;
+
+            /* Take the largest physical memory range in use by this device
+             * and store it into LfbBase. */
+            while( CM_Get_Next_Res_Des( &rd, rd, ResType_Mem, NULL, 0 ) == CR_SUCCESS ) {
+
+                /* Experimentally, no MEM_RES was found to be larger than 0x28 bytes
+                 * with the QEMU VGA adapter, so this buffer is static, but it would
+                 * be better to query the size (with CM_Get_Res_Des_Data_Size) and
+                 * then use alloca here. */
+                char memRes[0x28];
+
+                if( CM_Get_Res_Des_Data( rd, memRes, sizeof(memRes), 0 ) == CR_SUCCESS ) {
+                    PMEM_DES pMemDes = (PMEM_DES)memRes;
+                    ULONG cbAlloc = pMemDes->MD_Alloc_End - pMemDes->MD_Alloc_Base + 1;
+
+                    if( cbAlloc > cbAllocMax ) {
+                        cbAllocMax = cbAlloc;
+                        LfbBase = pMemDes->MD_Alloc_Base;
+                    }
+                }
+            }
+        }
+    }
+
+    dbg_printf("DriverInit: LfbBase is %lX\n", LfbBase);
+
+    /* Return 1 (success) iff we located the physical address of the linear framebuffer. */
+    return ( !!LfbBase );
 }

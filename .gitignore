@@ -1,0 +1,10 @@
+.vscode/
+res/*.obj
+res/*.bin
+*.obj
+*.err
+*.lib
+*.drv
+*.map
+*.res
+*.img

@@ -1,5 +1,5 @@
 ;
-; INF file for VirtualBox Win9x display driver
+; INF file for QEMU Win9x display driver
 ; Copyright 2012-2022, The OS/2 Museum
 
 [version]
@@ -13,17 +13,17 @@ BoxV.Copy = 11
 
 [SourceDisksNames]
 ; BOXV9X is the driver disk volume label
-1="VirtualBox Win9x Display Driver Disk",BOXV9X,1
+1="QEMU Win9x Display Driver Disk",BOXV9X,1
 
 [SourceDisksFiles]
 boxvmini.drv=1
-;boxvmini.vxd=1
+boxvmini.vxd=1
 
 [Manufacturer]
 %Mfg%=Mfg.BoxV
 
 [Mfg.BoxV]
-%PCI\VEN_80EE&DEV_BEEF.DeviceDesc%=BoxV,PCI\VEN_80EE&DEV_BEEF
+%PCI\VEN_1234&DEV_1111.DeviceDesc%=BoxV,PCI\VEN_1234&DEV_1111
 
 [BoxV]
 CopyFiles=BoxV.Copy
@@ -32,7 +32,7 @@ AddReg=BoxV_AddReg
 
 [BoxV.Copy]
 boxvmini.drv
-;boxvmini.vxd
+boxvmini.vxd
 
 [Prev.DelReg]
 HKR,,Ver
@@ -47,7 +47,7 @@ HKR,,DevLoader,,*vdd
 HKR,DEFAULT,Mode,,"8,640,480"
 HKR,DEFAULT,drv,,boxvmini.drv
 HKR,DEFAULT,vdd,,"*vdd,*vflatd"
-;HKR,DEFAULT,minivdd,,boxvmini.vxd
+HKR,DEFAULT,minivdd,,boxvmini.vxd
 ;HKR,DEFAULT,carddvdd,,cardsamp.vxd
 HKR,DEFAULT,RefreshRate,,-1
 HKR,DEFAULT,DDC,,1
@@ -114,5 +114,5 @@ HKR,"MODES\32\1920,1080"
 HKR,"MODES\32\1920,1200"
 
 [Strings]
-Mfg="VirtualBox"
-PCI\VEN_80EE&DEV_BEEF.DeviceDesc="VirtualBox SVGA PCI"
+Mfg="QEMU"
+PCI\VEN_1234&DEV_1111.DeviceDesc="QEMU SVGA PCI"

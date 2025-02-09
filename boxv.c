@@ -81,7 +81,7 @@ int BOXV_ext_mode_set( void *cx, int xres, int yres, int bpp, int v_xres, int v_
     vid_outw( cx, VBE_DISPI_IOPORT_DATA, 0 );
     /* Enable the extended display registers. */
     vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_ENABLE );
-    vid_outw( cx, VBE_DISPI_IOPORT_DATA, VBE_DISPI_ENABLED | VBE_DISPI_8BIT_DAC );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, VBE_DISPI_ENABLED | VBE_DISPI_8BIT_DAC | VBE_DISPI_LFB_ENABLED );
 
     /* Re-enable the sequencer. */
     vid_wridx( cx, VGA_SEQUENCER, VGA_SR_RESET, VGA_SR0_NORESET );
@@ -126,13 +126,16 @@ int BOXV_detect( void *cx, unsigned long *vram_size )
 
     vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_ID );
     boxv_id = vid_inw( cx, VBE_DISPI_IOPORT_DATA );
-    if( vram_size ) {
-        *vram_size = vid_ind( cx, VBE_DISPI_IOPORT_DATA );
-    }
-    if( boxv_id >= VBE_DISPI_ID0 && boxv_id <= VBE_DISPI_ID4 )
-        return( boxv_id );
-    else
+
+    if( boxv_id < VBE_DISPI_ID0 || boxv_id > VBE_DISPI_ID6 )
         return( 0 );
+
+    if( vram_size ) {
+        vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_VIDEO_MEMORY_64K );
+        *vram_size = (unsigned long)vid_inw( cx, VBE_DISPI_IOPORT_DATA ) << 16;
+    }
+
+    return( boxv_id );
 }
 
 /* Disable extended mode and place the hardware into a VGA compatible state.
@@ -144,26 +147,4 @@ int BOXV_ext_disable( void *cx )
     vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_ENABLE );
     vid_outw( cx, VBE_DISPI_IOPORT_DATA, VBE_DISPI_DISABLED );
     return( 0 );
-}
-
-/* Return the physical base address of the framebuffer. Needed in environments
- * that do not query the base through PCI.
- */
-unsigned long BOXV_get_lfb_base( void *cx )
-{
-    unsigned long   fb_base;
-
-    /* Ask the virtual hardware for the high 16 bits. */
-    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_FB_BASE_HI );
-    fb_base = vid_inw( cx, VBE_DISPI_IOPORT_DATA );
-
-    /* Old versions didn't support that, so use the default
-     * if the value looks like garbage.
-     */
-    if( fb_base != 0 && fb_base != 0xffff )
-        fb_base = fb_base << 16;
-    else
-        fb_base = VBE_DISPI_LFB_PHYSICAL_ADDRESS;
-
-    return( fb_base );
 }

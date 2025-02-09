@@ -60,8 +60,3 @@ static unsigned vid_inw( void *cx, unsigned port )
 {
     return( inpw( port ) );
 }
-
-static unsigned long vid_ind( void *cx, unsigned port )
-{
-    return( inpd( port ) );
-}

@@ -44,8 +44,8 @@ with the overhead of a higher level language.
 
  When built with DBGPRINT (e.g. wmake clean && wmake DBGPRINT=1), the driver
 includes debug logging implemented as dbg_printf() function. This is a small
-printf() subset with output directed to the VirtualBox debug port, such that
-the output appears in the VBox.log file.
+printf() subset with output directed to the QEMU debug port, such that
+the output appears on the debug console (supply "-debugcon stdio" to QEMU).
 
  It would be much nicer to use the C runtime printf(), but that is not at all
 possible because the small model library printf() cannot operate with SS != DS

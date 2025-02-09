@@ -1,0 +1,8 @@
+*.exe
+*.dll
+*.inc
+*.exp
+*.lib
+*.map
+*.obj
+*.vxd

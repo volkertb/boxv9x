@@ -47,7 +47,7 @@ typedef struct {
 extern WORD FixModeInfo( LPMODEDESC lpMode );
 extern int PhysicalEnable( void );
 extern void FAR SetRAMDAC_far( UINT bStart, UINT bCount, RGBQUAD FAR *lpPal );
-extern void ReadDisplayConfig( void );
+extern DWORD ReadDisplayConfig( void );
 extern void FAR RestoreDesktopMode( void );
 extern FARPROC RepaintFunc;
 extern void HookInt2Fh( void );
@@ -76,6 +76,7 @@ extern RGBQUAD FAR *lpColorTable;   /* Current color table. */
 
 extern DWORD    VDDEntryPoint;
 extern WORD     OurVMHandle;
+extern DWORD    LfbBase;
 
 /* Inlines needed in multiple modules. */
 

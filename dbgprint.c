@@ -35,8 +35,7 @@ THE SOFTWARE.
 
 
 /* Backdoor logging I/O ports. */
-#define INFO_PORT   0x504
-#define DEBUG_PORT  0x403
+#define INFO_PORT   0xe9
 
 #pragma code_seg( _INIT );
 
